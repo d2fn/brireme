@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <import resource="cassandra.xml"/>
+
+    <bean id="flightInstanceEmitter" class="atc.emitter.FlightInstanceEmitter">
+        <property name="resource" value="file:///Users/dietrich/scripts/oag/data/flights-20100406-20111231.tsv"/>
+        <property name="consumer" ref="cassandraFlightInstanceConsumer"/>
+        <!-- constrain to a certain date range (inclusive) (str compare, use only the number of digits necessary) -->
+        <property name="minDate" value="20100707"/>
+        <property name="maxDate" value="20100810"/>
+        <property name="airportFilter">
+            <list>
+                <!-- seattle -->
+                <value>SEA</value>
+                <!-- co -->
+                <value>COS</value>
+                <value>DEN</value>
+                <!-- san francisco -->
+                <value>SFO</value>
+                <!-- dc -->
+                <value>IAD</value>
+                <value>DCA</value>
+                <!-- chicago -->
+                <value>ORD</value>
+                <!-- dallas -->
+                <value>DFW</value>
+                <!-- houston -->
+                <value>IAH</value>
+                <!-- st louis -->
+                <value>STL</value>
+                <!-- branson -->
+                <value>BKG</value>
+                <!-- springfield -->
+                <value>SGF</value>
+                <!-- nyc -->
+                <value>JFK</value>
+                <value>LGA</value>
+                <!-- portland, oregon -->
+                <value>PDX</value>
+                <!-- charlotte -->
+                <value>CLT</value>
+                <!-- burlington, vermont -->
+                <value>BTV</value>
+                <!-- vancouver, bc -->
+                <value>YVR</value>
+                <!-- london heathrow -->
+                <value>LHR</value>
+                <!-- newport news, hampton -->
+                <value>PHF</value>
+                <value>LFI</value>
+                <!-- paris charles de gaulle -->
+                <value>CDG</value>
+                <!-- amsterdam -->
+                <value>AMS</value>
+                <!-- stuttgart -->
+                <value>STR</value>
+                <value>SGT</value>
+                <!-- singapore -->
+                <value>QPG</value>
+                <value>SIN</value>
+                <value>XSP</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="cassandraFlightInstanceConsumer" class="atc.consumer.CassandraFlightConsumer">
+        <property name="keyspace" value="OAG"/>
+        <property name="flightColumnFamily" value="Flight"/>
+        <property name="flightRouteColumnFamily" value="FlightRoute"/>
+        <property name="flightDepartureColumnFamily" value="FlightDeparture"/>
+        <property name="cassandra" ref="cassandra"/>
+    </bean>
+
+</beans>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="flightScheduleToInstanceEmitter" class="atc.emitter.FlightScheduleToInstanceEmitter">
+        <property name="resource" value="file:///Users/dietrich/scripts/oag/data/oag.txt"/>
+        <property name="consumer" ref="flightInstanceTSVWriter"/>
+    </bean>
+
+    <bean id="flightInstanceTSVWriter" class="atc.consumer.FlightInstanceTSVWriter">
+        <property name="output" value="file:///Users/dietrich/scripts/oag/data/flights-raw.txt"/>
+    </bean>
+    
+</beans>

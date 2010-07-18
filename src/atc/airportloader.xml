@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="cassandra.xml"/>
+
+    <bean id="airportEmitter" class="atc.emitter.AirportEmitter">
+        <property name="resource" value="file:///Users/dietrich/scripts/oag/data/placeinfo.psv"/>
+        <property name="consumer" ref="airportConsumer"/>
+    </bean>
+
+    <bean id="airportConsumer" class="atc.consumer.CassandraAirportConsumer">
+        <property name="cassandra" ref="cassandra"/>
+        <property name="keyspace" value="OAG"/>
+        <property name="columnFamily" value="Airport"/>
+    </bean>
+
+</beans>
