@@ -6,6 +6,7 @@ import atc.SVStream;
 import atc.beans.FlightInstance;
 import atc.beans.FlightSchedule;
 import atc.consumer.Consumer;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -18,7 +19,10 @@ public class FlightScheduleToInstanceEmitter extends SVStream implements Emitter
     private Consumer<FlightInstance> consumer;
 
     private FlightScheduleExpander expander;
-    private DateFormat df;
+    private static final DateFormat df = new SimpleDateFormat("yyyyMMdd");;
+    private String[] fields = {};
+    private int kept = 0;
+    private int tossed = 0;
 
     public FlightScheduleToInstanceEmitter() {
         super("\\|");
@@ -30,26 +34,28 @@ public class FlightScheduleToInstanceEmitter extends SVStream implements Emitter
 
     public void begin() {
 
-        df = new SimpleDateFormat("yyyyMMdd");
-
         consumer.begin();
 
         try {
             super.init();
             streamToConsumer();
-        } catch (IOException e) { }
-        finally { consumer.end(); }
+        }
+        catch (Throwable e) {
+            e.printStackTrace(System.err);
+        }
+        finally {
+            consumer.end();
+        }
     }
 
     private void streamToConsumer() throws IOException {
 
-        String[] fields = {};
-
         while(input.ready()) {
 
             fields = readLine();
-            if(valueOf("duplicate",fields).equals("D") || valueOf("dupcar1",fields).trim().length() == 0) {
+            if(valueOf("duplicate",fields).equals("D") || valueOf("dupcar1",fields).trim().length() != 0) {
                 // skip
+                tossed++;
             }
             else {
 
@@ -81,14 +87,18 @@ public class FlightScheduleToInstanceEmitter extends SVStream implements Emitter
                                 valueOf("arrivalCountry",fields),
                                 valueOf("departureTime",fields),
                                 valueOf("arrivalTime",fields),
-                                from, to, days );
+                                from, to, days);
 
                 expander = new FlightScheduleExpander(sched);
 
                 while(expander.hasNext()) {
                     consumer.send(expander.next());
                 }
+
+                kept++;
             }
         }
     }
+
+    private static final Logger logger = Logger.getLogger(FlightScheduleToInstanceEmitter.class);
 }

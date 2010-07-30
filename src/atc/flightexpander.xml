@@ -4,12 +4,13 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="flightScheduleToInstanceEmitter" class="atc.emitter.FlightScheduleToInstanceEmitter">
-        <property name="resource" value="file:///Users/dietrich/scripts/oag/data/oag.txt"/>
+        <property name="resource" value="file:///Users/dietrich/scripts/oag/data/flightsched.psv"/>
         <property name="consumer" ref="flightInstanceTSVWriter"/>
     </bean>
 
     <bean id="flightInstanceTSVWriter" class="atc.consumer.FlightInstanceTSVWriter">
-        <property name="output" value="file:///Users/dietrich/scripts/oag/data/flights-raw.txt"/>
+        <property name="output" value="file:///Users/dietrich/scripts/oag/data/flights.tsv"/>
     </bean>
     
 </beans>
+        

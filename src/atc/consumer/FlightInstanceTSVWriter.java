@@ -1,8 +1,10 @@
 package atc.consumer;
 
 import atc.beans.FlightInstance;
+import org.apache.log4j.Logger;
 import org.springframework.core.io.Resource;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -11,6 +13,7 @@ public class FlightInstanceTSVWriter implements Consumer<FlightInstance> {
     private Resource output;
     private PrintWriter writer;
     private Consumer<FlightInstance> nextConsumer;
+    private boolean append = false;
 
     public void begin() {
 
@@ -27,12 +30,15 @@ public class FlightInstanceTSVWriter implements Consumer<FlightInstance> {
                 .append("arrivalCity\t")
                 .append("arrivalCountry");
         try {
-            writer = new PrintWriter(output.getFile());
+            writer = new PrintWriter(new FileOutputStream(output.getFile(),append));
             writer.println(mdline.toString());
             if(nextConsumer != null) {
                 nextConsumer.begin();
             }
-        } catch (IOException e) { }
+        } catch (Exception e) {
+            logger.error(e.getMessage(),e);
+            e.printStackTrace(System.err);
+        }
     }
 
     public void send(FlightInstance flight) {
@@ -69,7 +75,13 @@ public class FlightInstanceTSVWriter implements Consumer<FlightInstance> {
         this.output = output;
     }
 
+    public void setAppend(boolean append) {
+        this.append = append;
+    }
+
     public void setConsumer(Consumer<FlightInstance> consumer) {
         this.nextConsumer = consumer;
     }
+
+    private static final Logger logger = Logger.getLogger(FlightInstanceTSVWriter.class); 
 }

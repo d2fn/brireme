@@ -12,10 +12,11 @@ import java.util.List;
 
 public class FlightInstanceEmitter extends SVStream implements Emitter<FlightInstance> {
 
-    private DateFormat df = new SimpleDateFormat("yyyyMMddHHmm");
+    private static final DateFormat df = new SimpleDateFormat("yyyyMMddHHmm");
     private Consumer<FlightInstance> consumer;
 
     int count = 0;
+    int line = 0;
     private String minDate;
     private String maxDate;
     private List<String> codes;
@@ -55,14 +56,20 @@ public class FlightInstanceEmitter extends SVStream implements Emitter<FlightIns
                                     df.parse(valueOf("landing",fields)));
                     consumer.send(flight);
 
-                    count++;
+//                    if(++count%100==0) {
+//                        System.out.println(count+" schedules expanded");
+//                    }
+                }
+
+                if(++line%100==0) {
+                    System.out.println(line+" lines processed");
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ParseException pe) {
-            throw new RuntimeException(pe);
-        } finally {
+        }
+        catch(Exception e) {
+            e.printStackTrace(System.err);
+        }
+        finally {
             consumer.end();
         }
 

@@ -15,6 +15,7 @@ public class SVStream {
     private String delim;
 
     protected BufferedReader input;
+    protected String line;
 
     public SVStream(String delim) {
         this.delim = delim;
@@ -36,7 +37,8 @@ public class SVStream {
     }
 
     protected String[] readLine() throws IOException {
-        return input.readLine().split(delim);
+        line = input.readLine();
+        return line.split(delim);
     }
 
     protected String valueOf(String name, String[] fields) {

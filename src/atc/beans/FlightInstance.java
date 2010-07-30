@@ -18,11 +18,9 @@ public class FlightInstance {
     private Date   takeoff;
     private Date   landing;
 
-    private DateFormat df;
+    private static final DateFormat df = new SimpleDateFormat("yyyyMMddHHmm");
 
-    public FlightInstance() {
-        df = new SimpleDateFormat("yyyyMMddHHmm");
-    }
+    public FlightInstance() {}
 
     public FlightInstance(String carrier, String flight, String departureAirport, String departureCity, String departureCountry, String arrivalAirport, String arrivalCity, String arrivalCountry, Date takeoff, Date landing) {
         this();
@@ -153,6 +151,22 @@ public class FlightInstance {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(getTakeoff());
+        sb.append("-");
+        sb.append(departureAirport);
+        sb.append("-");
+        sb.append(arrivalAirport);
+        sb.append("-");
+        sb.append(carrier);
+        sb.append("-");
+        sb.append(flight);
+        return sb.toString();
+    }
+
+    public String getRouteString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getTakeoff());
+        sb.append("-");
+        sb.append(getLanding());
         sb.append("-");
         sb.append(departureAirport);
         sb.append("-");

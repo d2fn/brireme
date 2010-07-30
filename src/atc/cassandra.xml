@@ -3,7 +3,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
     <bean id="cassandra" class="atc.CassandraThriftEndPoint">
-        <property name="host" value="192.168.205.143"/>
+        <property name="host" value="192.168.205.190"/>
         <property name="port" value="9160"/>
     </bean>
 </beans>

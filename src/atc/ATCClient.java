@@ -9,34 +9,27 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 public class ATCClient {
 
-    private CassandraThriftEndPoint cassandra;
     private Cassandra.Client client;
 
-    public ATCClient(CassandraThriftEndPoint cassandra) {
-        this.cassandra = cassandra;
+    public ATCClient(String contextPath, String cassandraBean, String day, String dep, String arr, boolean sameCarrier, int hops) {
+
+        ApplicationContext context = new ClassPathXmlApplicationContext(contextPath);
+        CassandraThriftEndPoint cassandra = (CassandraThriftEndPoint)context.getBean(cassandraBean);
+
         try {
-            this.cassandra.init();
+            cassandra.init();
         } catch (TTransportException e) {
             throw new RuntimeException(e);
         }
         this.client = cassandra.getClient();
-    }
 
-    public void go() {
-        try {
-            describeKeyspaces();
-            //showRoutes("20100809", "LAX", "LHR", true, 2);
-            showRoutes("20100809", "SGF", "LHR", true, 3);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        finally {
-            cassandra.cleanup();
-        }
+        showRoutes(day,dep,arr,sameCarrier,hops);
+
+        cassandra.cleanup();
     }
 
     private List<List<FlightInstance>> getFlights(String day, String dep, String dest, boolean sameCarrier, int hops) throws Exception {
@@ -45,7 +38,7 @@ public class ATCClient {
         List<List<FlightInstance>> options = new ArrayList<List<FlightInstance>>();
 
         // temporary data structure for passing connecting information
-        List<FlightInstance> legs = new ArrayList<FlightInstance>(1);
+        Stack<FlightInstance> legs = new Stack<FlightInstance>();
 
         List<String> flightIds = getFlights(day, dep);
         for (String flightId : flightIds) {
@@ -58,37 +51,35 @@ public class ATCClient {
             }
             else if(hops > 1) {
                 // look at possible destinations connecting from this flight
-                FlightInstance flight = getFlightById(flightId);
-                legs.add(flight);
+                legs.push(getFlightById(flightId));
                 traverseFlights(options, legs, day, dest, sameCarrier, 2, hops);
-                legs.remove(flight);
+                legs.pop();
             }
         }
         return options;
     }
 
-    private void traverseFlights(List<List<FlightInstance>> optionList, List<FlightInstance> legs, String day, String arr, boolean sameCarrier, int level, int hops) throws Exception {
+    private void traverseFlights(List<List<FlightInstance>> optionList, Stack<FlightInstance> legs, String day, String arr, boolean sameCarrier, int level, int hops) throws Exception {
 
         // get the connection information from the last flight and search all outbound flights in search of our ultimate destination
-        FlightInstance connectingFlight = legs.get(legs.size()-1);
-        String arrivingAt = connectingFlight.getArrivalAirport();
+        FlightInstance lastLeg = legs.get(legs.size()-1);
+        String arrivingAt = lastLeg.getArrivalAirport();
         List<String> flightIds = getFlights(day, arrivingAt);
         for (String flightId : flightIds) {
             FlightInstance flight = getFlightById(flightId);
-            FlightInstance lastLeg = legs.get(legs.size()-1);
-            if (flight.getArrivalAirport().equals(arr) && flight.happensAfter(lastLeg) && (!sameCarrier || flight.hasSameCarrier(lastLeg))) {
-                // build new route with all prior legs, adding this flight to the end
-                List<FlightInstance> route = new ArrayList<FlightInstance>(legs.size()+1);
-                route.addAll(legs);
-                route.add(getFlightById(flightId));
-                // copy this route to the verified set that go from dep -> arr
-                optionList.add(route);
-            }
-            else {
-                if (level < hops) {
-                    legs.add(flight);
+            if(flight.happensAfter(lastLeg)) {
+                if (flight.getArrivalAirport().equals(arr) && (!sameCarrier || flight.hasSameCarrier(lastLeg))) {
+                    // build new route with all prior legs, adding this flight to the end
+                    List<FlightInstance> route = new ArrayList<FlightInstance>(legs.size()+1);
+                    route.addAll(legs);
+                    route.add(flight);
+                    // copy this route to the verified set that go from dep -> arr
+                    optionList.add(route);
+                }
+                else if (level < hops) {
+                    legs.push(flight);
                     traverseFlights(optionList,legs,day,arr,sameCarrier,level+1,hops);
-                    legs.remove(flight);
+                    legs.pop();
                 }
             }
         }
@@ -103,7 +94,7 @@ public class ATCClient {
                     if(i > 0) {
                         routeStr.append(" -> ");
                     }
-                    routeStr.append(route.get(i).toString());
+                    routeStr.append(route.get(i).getRouteString());
                 }
                 System.out.println(routeStr);
             }
@@ -112,52 +103,6 @@ public class ATCClient {
             e.printStackTrace();
         }
     }
-
-//    private void showRoutes(String day, String departureAirport, String destinationAirport, boolean sameCarrier, int hops) throws Exception {
-//        assert (hops > 0);
-//
-//        for (String flight : getFlights(day, departureAirport)) {
-//            String arrivalAirport = getArrivalAirport(flight);
-//            for (String secFlight : getFlights(day, arrivalAirport)) {
-//                String nextArrival = getArrivalAirport(secFlight);
-//                if (nextArrival.equals(destinationAirport)) {
-//                    FlightInstance leg2 = getFlightById(secFlight);
-//                    FlightInstance leg1 = getFlightById(flight);
-//                    if (leg2.getTakeoffTime().after(leg1.getLandingTime()) && (!sameCarrier || leg2.getCarrier().equals(leg1.getCarrier()))) {
-//                        showRoute(leg1, leg2);
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    private void showRoute(FlightInstance leg1, FlightInstance leg2) {
-//
-//        DateFormat day = new SimpleDateFormat("MMMM dd");
-//        DateFormat time = new SimpleDateFormat("hh:mm a");
-//
-//        System.out.println(
-//                "On " +
-//                        day.format(leg1.getTakeoffTime()) +
-//                        " at " +
-//                        time.format(leg1.getTakeoffTime()) +
-//                        " take " +
-//                        leg1.getCarrier() + leg1.getFlight() +
-//                        " from " + leg1.getDepartureAirport() + " to " + leg1.getArrivalAirport() +
-//                        " arriving at " + time.format(leg1.getLandingTime()));
-//
-//        long layoverms = leg2.getTakeoffTime().getTime() - leg1.getLandingTime().getTime();
-//        float hrs = (float) layoverms / 1000f / 60f / 60f;
-//        DecimalFormat lyvr = new DecimalFormat("#.##");
-//
-//        System.out.println("Layover: " + lyvr.format(hrs) + " h");
-//
-//        System.out.println(
-//                "Then at " + time.format(leg2.getTakeoffTime()) + " take " + leg2.getCarrier() + leg2.getFlight() +
-//                        " to " + leg2.getArrivalAirport() + " arriving at " + time.format(leg2.getLandingTime()));
-//
-//        System.out.println("=============================================================================");
-//    }
 
     private void describeKeyspaces() {
         try {
@@ -186,8 +131,6 @@ public class ATCClient {
     }
 
     /**
-     * 0123456789012345678901234567
-     *
      * @param flight = "201010090600-DCA-PHL-US-3692"
      * @return the departure airport code of the given flight
      */
@@ -257,9 +200,16 @@ public class ATCClient {
     }
 
     public static void main(String[] args) {
-        ApplicationContext context = new ClassPathXmlApplicationContext("atc/cassandra.xml");
-        CassandraThriftEndPoint cassandra = (CassandraThriftEndPoint) context.getBean("cassandra");
-        new ATCClient(cassandra).go();
+
+        new ATCClient(
+                args[0], // spring context resource
+                args[1], // cassandra endpoint bean id
+                args[2], // day
+                args[3], // departure airport code
+                args[4], // arrival airport code
+                Boolean.valueOf(args[5]), // search same carrier
+                Integer.parseInt(args[6]) // number of hops
+        );
     }
 
     public static final String UTF8 = "UTF8";
